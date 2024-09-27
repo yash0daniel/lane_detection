@@ -72,9 +72,9 @@ def region_selection(image):
         ignore_mask_colour = (255, ) * channel_count
     else:
         ignore_mask_colour = 255
-    
-    rows, cols = image.shape[:2]    
-    bottom_right  = [cols * 0.7, rows * 0.95]
+
+    rows, cols = image.shape[:2]
+    bottom_right  = [cols * 0.8, rows * 0.95]
     bottom_left   = [cols * 0.2, rows * 0.95]
     top_left      = [cols * 0.4, rows * 0.6]
     top_right     = [cols * 0.7, rows * 0.6]
@@ -86,41 +86,45 @@ def region_selection(image):
     vertices = np.array([[bottom_left, top_left, top_right, bottom_right]], dtype=np.int32)
     white_polygon = cv2.fillPoly(mask, vertices, ignore_mask_colour)
     # imshow('Image white_polygon', white_polygon)
-    masked_image = cv2.bitwise_and(image, mask)
-    return masked_image
+
+    return mask
 
 def filter_colors(image, lower_threshold):
     _, combined_mask = cv2.threshold(image, lower_threshold, 255, cv2.THRESH_BINARY)
     return combined_mask
 
 def process_image(img):
-    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    imshow('Image grayscale', grayscale)
+    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # RGB to gray
+    # imshow('Image grayscale', grayscale)
 
     kernel_size = 5
-    blur = cv2.GaussianBlur(grayscale, (kernel_size, kernel_size), 0)
+    blur = cv2.GaussianBlur(grayscale, (kernel_size, kernel_size), 0)  # gray to a little blur
     # imshow('Image blur', blur)
     
-    # lower_t = 100   #test_1.mp4
-    # lower_t = 180   #test_2.mp4
-    lower_t = 180   #test_3.mp4
-    mask = filter_colors(blur, lower_t)
-    imshow('no Color Mask', mask)   
+    polygon_mask = region_selection(blur)
+    masked_image = cv2.bitwise_and(blur, blur, mask=polygon_mask)
+    # imshow('Image masked_image', masked_image)  #a poly masked image (colored)
+    
+    mean_value = cv2.mean(masked_image, mask=polygon_mask)[0]
+    lower_t = max(0, mean_value + 30) # tolarance or buffer (can be modified as per req.)
+
+    mask = filter_colors(masked_image, lower_t) # black & white image of ploy to process 
+    # imshow('no Color Mask', mask)     
 
     low_t = 50
     high_t = 150
-    edges = cv2.Canny(mask, low_t, high_t)
+    edges = cv2.Canny(mask, low_t, high_t)  # process the edges(strips) inside poly of road
     # imshow('Image edges', edges)
 
-    region = region_selection(edges)
-    imshow('Image region', region)
+    # region_masked_image = cv2.bitwise_and(edges, masked_image) # waste of processing
+    # imshow('Image region_masked_image', region_masked_image)
 
-    hough = hough_transform(region)
+    hough = hough_transform(edges)
     # print(hough)
 
-    if(hough is not None):
+    if(hough is not None):  # process lanes and the superimpose
         result = draw_lane_lines(img, lane_lines(img, hough))
-    else:
+    else: #in case of no lanes
         result = img
     imshow('Image result', result)
 
@@ -145,6 +149,6 @@ def main(video_file):
     input_video.release()
 
 destroyAllWindows()
-# main('test_1.mp4')
+main('test_1.mp4')
 # main('test_2.mp4')
-main('test_3.mp4')
+# main('test_3.mp4')
