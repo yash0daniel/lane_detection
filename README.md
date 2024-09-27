@@ -14,4 +14,4 @@ Ref:
 
 Tasks:
 * custom polygon
-* custom gray scale detection with image color
+* custom gray scale detection with image color - Done
