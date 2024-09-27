@@ -1,7 +1,6 @@
 # import libs
 from cv2 import (VideoCapture, imshow, waitKey, destroyAllWindows,CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, CAP_PROP_FPS)
 import cv2
-import time
 import pandas as pd
 import numpy as np
 
@@ -33,6 +32,8 @@ def pixel_points(y1, y2, line):
     if line is None:
         return None
     slope, intercept = line
+    if slope == 0.0:
+        slope = 1.0
     x1 = int((y1 - intercept)/slope)
     x2 = int((y2 - intercept)/slope)
     y1 = int(y1)
@@ -41,8 +42,9 @@ def pixel_points(y1, y2, line):
    
 def lane_lines(image, lines):
     left_lane, right_lane = average_slope_intercept(lines)
+    # print(left_lane, right_lane)
     y1 = image.shape[0]
-    y2 = y1 * 0.8
+    y2 = y1 * 0.6
     left_line  = pixel_points(y1, y2, left_lane)
     right_line = pixel_points(y1, y2, right_lane)
     return left_line, right_line
@@ -71,16 +73,16 @@ def region_selection(image):
     else:
         ignore_mask_colour = 255
         
-    rows, cols = image.shape[:2]
-    # bottom_right =  [cols * 0.7, rows * 0.95]
-    # bottom_left =   [cols * 0.2, rows * 0.95]
-    # top_left =      [cols * 0.4, rows * 0.7]
-    # top_right =     [cols * 0.7, rows * 0.7]
-    
+    rows, cols = image.shape[:2]    
     bottom_right =  [cols * 0.7, rows * 0.95]
-    bottom_left =   [cols * 0.23, rows * 0.95]
-    top_left =      [cols * 0.4, rows * 0.78]
-    top_right =     [cols * 0.55, rows * 0.78]
+    bottom_left =   [cols * 0.2, rows * 0.95]
+    top_left =      [cols * 0.4, rows * 0.6]
+    top_right =     [cols * 0.7, rows * 0.6]
+    
+    # bottom_right =  [cols * 0.7, rows * 0.95]
+    # bottom_left =   [cols * 0.23, rows * 0.95]
+    # top_left =      [cols * 0.4, rows * 0.78]
+    # top_right =     [cols * 0.55, rows * 0.78]
     vertices = np.array([[bottom_left, top_left, top_right, bottom_right]], dtype=np.int32)
     white_polygon = cv2.fillPoly(mask, vertices, ignore_mask_colour)
     # imshow('Image white_polygon', white_polygon)
@@ -89,11 +91,11 @@ def region_selection(image):
 
 def process_image(img):
     grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # imshow('Image grayscale', grayscale)
+    imshow('Image grayscale', grayscale)
     
     kernel_size = 5
     blur = cv2.GaussianBlur(grayscale, (kernel_size, kernel_size), 0)
-    # imshow('Image blur', blur)
+    imshow('Image blur', blur)
 
     low_t = 50
     high_t = 150
@@ -101,11 +103,10 @@ def process_image(img):
     imshow('Image edges', edges)
 
     region = region_selection(edges)
-    # imshow('Image region', region)
+    imshow('Image region', region)
 
     hough = hough_transform(region)
     # print(hough)
-    # imshow('Image hough', hough)
 
     if(hough is not None):
         result = draw_lane_lines(img, lane_lines(img, hough))
@@ -113,30 +114,25 @@ def process_image(img):
         result = img
     imshow('Image result', result)
 
-    # time.sleep(0.5)
-    return
+    return result
 
-def main():
-    input_video = VideoCapture('test_2.mp4')
+def main(video_file):
+    input_video = VideoCapture(video_file)
 
     if not input_video.isOpened():
         print("Error opening video file")
-    else:
-        frame_width = input_video.get(CAP_PROP_FRAME_WIDTH)
-        frame_height = input_video.get(CAP_PROP_FRAME_HEIGHT)
-        fps = input_video.get(CAP_PROP_FPS)
 
     while input_video.isOpened():
         ret, frame = input_video.read()
         if ret:
             # imshow('Lane Assistance!', frame)
             output_video = process_image(frame)
+            # output_video.write_videofile('test_2_output.mp4', audio=False)
 
         if waitKey(25) == 27:
             break
 
     input_video.release()
-    # output_video.write_videofile('test_2_output.mp4', audio=False)
 
 destroyAllWindows()
-main()
+main('test_3.mp4')
