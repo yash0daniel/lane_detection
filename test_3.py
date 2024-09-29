@@ -44,7 +44,7 @@ def lane_lines(image, lines):
     left_lane, right_lane = average_slope_intercept(lines)
     # print(left_lane, right_lane)
     y1 = image.shape[0]
-    y2 = y1 * 0.6
+    y2 = y1 * 0.8
     left_line  = pixel_points(y1, y2, left_lane)
     right_line = pixel_points(y1, y2, right_lane)
     return left_line, right_line
@@ -75,9 +75,9 @@ def region_selection(image):
 
     rows, cols = image.shape[:2]
     bottom_right  = [cols * 0.8, rows * 0.95]
-    bottom_left   = [cols * 0.2, rows * 0.95]
-    top_left      = [cols * 0.4, rows * 0.6]
-    top_right     = [cols * 0.7, rows * 0.6]
+    bottom_left  =  [cols * 0.23, rows * 0.95]
+    top_left     =  [cols * 0.4, rows * 0.78]
+    top_right    =  [cols * 0.65, rows * 0.78]
     
     # bottom_right =  [cols * 0.7, rows * 0.95]
     # bottom_left  =  [cols * 0.23, rows * 0.95]
@@ -95,26 +95,26 @@ def filter_colors(image, lower_threshold):
 
 def process_image(img):
     grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # RGB to gray
-    # imshow('Image grayscale', grayscale)
+    imshow('Image grayscale', grayscale)
 
     kernel_size = 5
     blur = cv2.GaussianBlur(grayscale, (kernel_size, kernel_size), 0)  # gray to a little blur
-    # imshow('Image blur', blur)
+    imshow('Image blur', blur)
     
     polygon_mask = region_selection(blur)
     masked_image = cv2.bitwise_and(blur, blur, mask=polygon_mask)
-    # imshow('Image masked_image', masked_image)  #a poly masked image (colored)
+    imshow('Image masked_image', masked_image)  #a poly masked image (colored)
     
     mean_value = cv2.mean(masked_image, mask=polygon_mask)[0]
     lower_t = max(0, mean_value + 30) # tolarance or buffer (can be modified as per req.)
 
     mask = filter_colors(masked_image, lower_t) # black & white image of ploy to process 
-    # imshow('no Color Mask', mask)     
+    imshow('no Color Mask', mask)     
 
     low_t = 50
     high_t = 150
     edges = cv2.Canny(mask, low_t, high_t)  # process the edges(strips) inside poly of road
-    # imshow('Image edges', edges)
+    imshow('Image edges', edges)
 
     # region_masked_image = cv2.bitwise_and(edges, masked_image) # waste of processing
     # imshow('Image region_masked_image', region_masked_image)
